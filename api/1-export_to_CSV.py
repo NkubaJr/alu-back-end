@@ -1,56 +1,45 @@
 #!/usr/bin/python3
-"""
-Module to fetch user information and export TODO list to a CSV file
-"""
+"""Export employee TODO data to CSV format."""
 import csv
 import requests
-from sys import argv
+import sys
 
 
-def get_employee_info(employee_id):
-    """
-    Get employee information by employee ID
-    """
-    url = f'https://jsonplaceholder.typicode.com/users/{employee_id}'
-    response = requests.get(url)
-    return response.json()
+def export_to_csv(employee_id):
+    """Export employee TODO data to CSV file."""
+    try:
+        # Fetch employee data
+        base_url = "https://jsonplaceholder.typicode.com"
+        user_url = f"{base_url}/users/{employee_id}"
+        todos_url = f"{base_url}/users/{employee_id}/todos"
 
+        user = requests.get(user_url).json()
+        todos = requests.get(todos_url).json()
 
-def get_employee_todos(employee_id):
-    """
-    Get the TODO list of the employee by employee ID
-    """
-    url = f'https://jsonplaceholder.typicode.com/users/{employee_id}/todos'
-    response = requests.get(url)
-    return response.json()
+        # Prepare CSV filename
+        filename = f"{employee_id}.csv"
 
+        # Write to CSV file
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
+            for task in todos:
+                writer.writerow([
+                    employee_id,
+                    user['username'],
+                    str(task['completed']),
+                    task['title']
+                ])
 
-def export_to_csv(employee_id, username, todos):
-    """
-    Export TODO list to a CSV file
-    """
-    filename = f'{employee_id}.csv'
-    with open(filename, mode='w') as file:
-        file_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_ALL)
-        for todo in todos:
-            rowData = [employee_id, username, todo['completed'], todo['title']]
-            file_writer.writerow(rowData)
-
-
-def main(employee_id):
-    """
-    Main function to fetch user info and TODO list, then export to CSV
-    """
-    user = get_employee_info(employee_id)
-    username = user.get("username")
-
-    todos = get_employee_todos(employee_id)
-
-    export_to_csv(employee_id, username, todos)
+    except requests.exceptions.RequestException:
+        sys.exit("Error fetching data")
+    except ValueError:
+        sys.exit("Invalid employee ID")
+    except Exception as e:
+        sys.exit(f"An error occurred: {e}")
 
 
 if __name__ == "__main__":
-    if len(argv) > 1:
-        main(argv[1])
-    else:
-        print("Usage: ./1-export_to_CSV.py <employee_id>")
+    if len(sys.argv) != 2:
+        sys.exit("Usage: ./1-export_to_CSV.py <employee_id>")
+
+    export_to_csv(sys.argv[1])
